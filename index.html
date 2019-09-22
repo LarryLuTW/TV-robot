@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>豬豬電腦遙控器</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+      integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
+      crossorigin="anonymous"
+    />
+
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h2 {
+        margin-top: 20px;
+      }
+      .col-4 {
+        padding: 5px;
+      }
+      .btn {
+        height: 40vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      button {
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>豬豬電腦遙控器</h2>
+    <div class="container-fluid">
+      <div class="row">
+        <div id="left" class="col-4" aria-pressed="true">
+          <button type="button" class="btn btn-success">Left</button>
+        </div>
+        <div id="space" class="col-4" aria-pressed="true">
+          <button type="button" class="btn btn-primary">開始/暫停</button>
+        </div>
+        <div id="right" class="col-4" aria-pressed="true">
+          <button type="button" class="btn btn-success">Right</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+
+    <script>
+      $('#space').click(function() {
+        axios.post('/api/space').catch(err => alert(err))
+      })
+      $('#left').click(function() {
+        axios.post('/api/left').catch(err => alert(err))
+      })
+      $('#right').click(function() {
+        axios.post('/api/right').catch(err => alert(err))
+      })
+    </script>
+  </body>
+</html>
