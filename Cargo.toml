@@ -1,0 +1,15 @@
+[package]
+name = "tv-robot"
+version = "0.1.0"
+authors = ["Larry850806 <pudding850806@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enigo = "0.0.13"
+actix-web = "2.0.0"
+actix-rt = "1.0"
+actix-files = "0.2.1"
+lazy_static = "1.4.0"
+
