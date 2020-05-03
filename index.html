@@ -1,71 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>豬豬電腦遙控器</title>
+    <title>肥豬電腦遙控器</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-    <!-- Bootstrap CSS -->
     <link
       rel="stylesheet"
-      href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
-      integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
-      crossorigin="anonymous"
+      href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
     />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
 
     <style>
       body {
         display: flex;
         flex-direction: column;
         align-items: center;
+        touch-action: manipulation;
       }
       h2 {
-        margin-top: 20px;
+        margin-top: 15px !important;
       }
-      .col-4 {
-        padding: 5px;
+      .main.ui {
+        width: 100% !important;
       }
-      .btn {
-        height: 40vh;
+      .main.ui > div {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        margin-bottom: 5px;
       }
       button {
-        width: 100%;
+        height: 35vh;
+        flex: 1;
+        margin: 0 0.15em !important;
+      }
+      i {
+        transform: scale(5);
       }
     </style>
   </head>
 
   <body>
-    <h2>豬豬電腦遙控器</h2>
-    <div class="container-fluid">
-      <div class="row">
-        <div id="left" class="col-4" aria-pressed="true">
-          <button type="button" class="btn btn-success">Left</button>
-        </div>
-        <div id="space" class="col-4" aria-pressed="true">
-          <button type="button" class="btn btn-primary">開始/暫停</button>
-        </div>
-        <div id="right" class="col-4" aria-pressed="true">
-          <button type="button" class="btn btn-success">Right</button>
-        </div>
+    <h2>肥豬電腦遙控器</h2>
+
+    <div class="main ui container">
+      <div>
+        <button id="left" class="ui icon button">
+          <i class="icon backward"></i>
+        </button>
+        <button id="space" class="ui icon button">
+          <i class="icon pause" style="display: none;"></i>
+          <i class="icon play"></i>
+        </button>
+        <button id="right" class="ui icon button">
+          <i class="icon forward"></i>
+        </button>
       </div>
+      <!-- <div>
+        <button id="volume_down" class="ui icon button">
+          <i class="icon volume down"></i>
+        </button>
+        <button id="volume_up" class="ui icon button">
+          <i class="icon volume up"></i>
+        </button>
+      </div> -->
     </div>
 
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.5.5/rxjs.umd.js"></script>
 
     <script>
-      $('#space').click(function() {
-        axios.post('/api/space').catch(err => alert(err))
+      const $space = $('#space')
+      const $left = $('#left')
+      const $right = $('#right')
+      // const $volDown = $('#volume_down')
+      // const $volUp = $('#volume_up')
+      const { fromEvent, timer } = rxjs
+      const { merge, takeUntil, switchMap } = rxjs.operators
+
+      const interval = 350
+
+      $space.click(() => {
+        axios.post('/api/space').catch((err) => alert(err))
+        $('#space > i').toggle()
       })
-      $('#left').click(function() {
-        axios.post('/api/left').catch(err => alert(err))
-      })
-      $('#right').click(function() {
-        axios.post('/api/right').catch(err => alert(err))
-      })
+      // $volDown.click(() => axios.post('/api/volume_down').catch((err) => alert(err)))
+      // $volUp.click(() => axios.post('/api/volume_up').catch((err) => alert(err)))
+
+      const leftDown = fromEvent($left, 'mousedown').pipe(merge(fromEvent($left, 'touchstart')))
+      const leftUp = fromEvent($left, 'mouseup').pipe(merge(fromEvent($left, 'touchend')))
+      const rightDown = fromEvent($right, 'mousedown').pipe(merge(fromEvent($right, 'touchstart')))
+      const rightUp = fromEvent($right, 'mouseup').pipe(merge(fromEvent($right, 'touchend')))
+
+      rightDown
+        .pipe(switchMap(() => timer(0, interval).pipe(takeUntil(rightUp))))
+        .subscribe(() => axios.post('/api/right').catch((err) => alert(err)))
+
+      leftDown
+        .pipe(switchMap(() => timer(0, interval).pipe(takeUntil(leftUp))))
+        .subscribe(() => axios.post('/api/left').catch((err) => alert(err)))
     </script>
   </body>
 </html>
