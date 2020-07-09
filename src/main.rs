@@ -1,11 +1,39 @@
+use std::process::Command;
+
 use actix_files::NamedFile;
 use actix_web::{web, App, HttpRequest, HttpServer, Responder, Result};
-
 use enigo::*;
 
 fn press(key: enigo::Key) {
     let mut en = Enigo::new();
-    en.key_down(key);
+    en.key_click(key);
+}
+
+fn get_volume() -> i8 {
+    let script = "osascript -e 'output volume of (get volume settings)'";
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(script)
+        .output()
+        .expect("failed to get volume");
+
+    let vol = String::from_utf8_lossy(&output.stdout)
+        .trim_end()
+        .parse()
+        .expect("failed to parse volume into integer");
+
+    return vol;
+}
+
+fn set_volume(vol: i8) {
+    let script = format!("osascript -e 'set Volume output volume {}'", vol);
+    Command::new("sh")
+        .arg("-c")
+        .arg(script)
+        .spawn()
+        .expect("failed to spawn process")
+        .wait()
+        .unwrap();
 }
 
 async fn index(_req: HttpRequest) -> Result<NamedFile> {
@@ -27,6 +55,18 @@ async fn press_right() -> impl Responder {
     "Ok"
 }
 
+async fn volume_down() -> impl Responder {
+    let current_vol = get_volume();
+    set_volume(current_vol - 7);
+    "Ok"
+}
+
+async fn volume_up() -> impl Responder {
+    let current_vol = get_volume();
+    set_volume(current_vol + 7);
+    "Ok"
+}
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     let ip = local_ip::get().unwrap().to_string();
@@ -39,6 +79,8 @@ async fn main() -> std::io::Result<()> {
             .route("/api/space", web::post().to(press_space))
             .route("/api/left", web::post().to(press_left))
             .route("/api/right", web::post().to(press_right))
+            .route("/api/volume_down", web::post().to(volume_down))
+            .route("/api/volume_up", web::post().to(volume_up))
     })
     .bind("0.0.0.0:3000")?
     .run()
