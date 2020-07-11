@@ -1,0 +1,11 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: rust:1.44
+
+    working_directory: /tv-robot
+    steps:
+      - checkout
+      - run: cargo build
+      - run: cargo build --release
