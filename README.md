@@ -5,5 +5,5 @@
 ## Install
 
 ```sh
-cargo install --git https://github.com/Larry850806/TV-robot
+cargo install --git https://github.com/Larry/TV-robot
 ```
