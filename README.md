@@ -2,6 +2,10 @@
 
 This project is used to control computer's up, down, left, and right, and volume buttons on my phone. If you want to know the development process, you can read the article [不想離開沙發，只好自己寫一個電腦遙控器了](https://medium.com/starbugs/how-to-make-a-computer-controller-7f8ffcdbe993).
 
+## Demo on Youtube
+
+[![Youtube Demo Video](https://user-images.githubusercontent.com/10403741/113395919-39aab680-93cd-11eb-8a72-36f374df1927.png)](https://www.youtube.com/watch?v=aIx-Li1m-3c)
+
 ## Install
 
 ```sh
