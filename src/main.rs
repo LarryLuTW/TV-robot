@@ -89,6 +89,7 @@ async fn main() -> std::io::Result<()> {
     let ip = local_ip::get().unwrap().to_string();
     let url = format!("http://{}:3000/", ip);
     qr2term::print_qr(&url).unwrap();
+    println!("Server is running at: {}", url);
 
     HttpServer::new(|| {
         App::new()
