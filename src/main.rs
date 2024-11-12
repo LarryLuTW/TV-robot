@@ -1,7 +1,5 @@
 use std::process::Command;
-use std::borrow::Cow;
 
-use actix_web::body::Body;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use enigo::*;
 
@@ -12,20 +10,17 @@ use rust_embed::RustEmbed;
 #[folder = "public/"]
 struct Asset;
 
-// ref: https://github.com/pyros2097/rust-embed/blob/master/examples/actix.rs
 fn handle_embedded_file(path: &str) -> HttpResponse {
     match Asset::get(path) {
         Some(content) => {
-            let body: Body = match content {
-                Cow::Borrowed(bytes) => bytes.into(),
-                Cow::Owned(bytes) => bytes.into(),
-            };
-            HttpResponse::Ok().content_type(from_path(path).first_or_octet_stream().as_ref()).body(body)
+            let mime = from_path(path).first_or_octet_stream();
+            HttpResponse::Ok()
+                .content_type(mime)
+                .body(content.into_owned())
         }
         None => HttpResponse::NotFound().body("404 Not Found"),
     }
 }
-
 fn press(key: enigo::Key) {
     let mut en = Enigo::new();
     en.key_click(key);

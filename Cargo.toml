@@ -2,17 +2,17 @@
 name = "tv-robot"
 version = "1.0.0"
 authors = ["Larry850806 <pudding850806@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 enigo = "0.0.14"
-actix-web = { version = "2.0.0", default-features = false, features = [] }
-actix-rt = "1.1.1"
-actix-files = "0.2.2"
+actix-web = "4.9.0"
+actix-rt = "2.10.0"
+actix-files = "0.6.6"
 local-ip = "0.1.0"
-qr2term = "0.2.1"
+qr2term = "0.2.3"
 rust-embed = "5.9.0"
-mime_guess = "2.0.3"
+mime_guess = "2.0.5"
 
