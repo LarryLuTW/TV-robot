@@ -16,14 +16,19 @@ fn handle_embedded_file(path: &str) -> HttpResponse {
             let mime = from_path(path).first_or_octet_stream();
             HttpResponse::Ok()
                 .content_type(mime)
-                .body(content.into_owned())
+                .body(content.data.into_owned())
         }
         None => HttpResponse::NotFound().body("404 Not Found"),
     }
 }
 fn press(key: enigo::Key) {
-    let mut en = Enigo::new();
-    en.key_click(key);
+    let settings = enigo::Settings::default();
+    if let Ok(mut en) = Enigo::new(&settings) {
+        // Use the key method with Direction::Click for a press and release
+        let _ = en.key(key, enigo::Direction::Click);
+    } else {
+        eprintln!("Failed to initialize Enigo");
+    }
 }
 
 fn get_volume() -> i8 {

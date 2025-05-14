@@ -23,3 +23,11 @@ cargo install --git https://github.com/LarryLuTW/TV-robot
 #### 3. Scan this QRCode with your phone to control the computer.
 
 <img width="328" alt="Screen Shot 2021-03-31 at 3 58 18 PM" src="https://user-images.githubusercontent.com/10403741/113110769-08e64800-923a-11eb-81cb-7b0abb651cde.png">
+
+## Upgrade Dependencies
+
+To upgrade all dependencies to their latest versions, run:
+
+```sh
+cargo upgrade -i && cargo update
+```
