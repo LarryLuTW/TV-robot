@@ -89,6 +89,14 @@ async fn volume_up() -> impl Responder {
     "Ok"
 }
 
+async fn sleep_display() -> impl Responder {
+    Command::new("pmset")
+        .arg("displaysleepnow")
+        .spawn()
+        .expect("failed to execute pmset command");
+    "Ok"
+}
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     let ip = local_ip::get().unwrap().to_string();
@@ -104,6 +112,7 @@ async fn main() -> std::io::Result<()> {
             .route("/api/right", web::post().to(press_right))
             .route("/api/volume_down", web::post().to(volume_down))
             .route("/api/volume_up", web::post().to(volume_up))
+            .route("/api/sleep", web::post().to(sleep_display))
     })
     .bind("0.0.0.0:3000")?
     .run()

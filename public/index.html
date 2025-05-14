@@ -68,6 +68,9 @@
         <button id="volume_up" class="ui icon button">
           <i class="icon volume up"></i>
         </button>
+        <button id="sleep" class="ui icon button">
+          <i class="icon power off"></i>
+        </button>
       </div>
     </div>
 
@@ -81,6 +84,7 @@
       const $right = $('#right')
       const $volDown = $('#volume_down')
       const $volUp = $('#volume_up')
+      const $sleep = $('#sleep')
       const { fromEvent, timer } = rxjs
       const { merge, takeUntil, switchMap } = rxjs.operators
 
@@ -92,6 +96,7 @@
       })
       $volDown.click(() => axios.post('/api/volume_down').catch((err) => alert(err)))
       $volUp.click(() => axios.post('/api/volume_up').catch((err) => alert(err)))
+      $sleep.click(() => axios.post('/api/sleep').catch((err) => alert(err)))
 
       const leftDown = fromEvent($left, 'mousedown').pipe(merge(fromEvent($left, 'touchstart')))
       const leftUp = fromEvent($left, 'mouseup').pipe(merge(fromEvent($left, 'touchend')))
