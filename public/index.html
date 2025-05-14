@@ -4,112 +4,224 @@
     <title>肥豬電腦遙控器</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
-    />
-    <link rel="stylesheet" href="style.css" />
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
-
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      * {
-        -moz-user-select: none;
-        -webkit-user-select: none;
+      :root {
+        --primary: #3498db;
+        --danger: #e74c3c;
+        --dark: #34495e;
+        --light: #ecf0f1;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --radius: 10px;
       }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+        font-family: 'Roboto', sans-serif;
+      }
+      
       body {
+        background-color: var(--light);
+        color: var(--dark);
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
+        padding: 10px;
         touch-action: manipulation;
       }
-      h2 {
-        margin-top: 15px !important;
+      
+      h1 {
+        font-size: 1.6rem;
+        font-weight: 500;
+        margin: 10px 0;
+        text-align: center;
       }
-      .main.ui {
-        width: 100% !important;
+      
+      .remote-container {
+        width: 100%;
+        max-width: 500px;
+        background-color: white;
+        border-radius: var(--radius);
+        padding: 10px;
+        box-shadow: var(--shadow);
       }
-      .main.ui > div {
+      
+      .button-grid {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      
+      .playback-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      
+      .volume-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      .remote-button {
+        border: none;
+        background-color: white;
+        color: var(--dark);
+        height: 20vh;
+        border-radius: var(--radius);
         display: flex;
-        margin-bottom: 5px;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
       }
-      button {
-        height: 35vh;
-        flex: 1;
-        margin: 0 0.15em !important;
+      
+      .small-button {
+        height: 15vh;
       }
-      i {
-        transform: scale(5);
+      
+      .remote-button:active {
+        transform: scale(0.95) translateY(2px);
+        box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+        background-color: #f5f5f5;
+      }
+      
+      .remote-button i {
+        font-size: 32px;
+      }
+      
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+      
+      .btn-primary:active {
+        background-color: #2980b9;
+      }
+      
+      .btn-danger {
+        background-color: var(--danger);
+        color: white;
+      }
+      
+      .btn-danger:active {
+        background-color: #c0392b;
+      }
+      
+      /* Button ripple effect */
+      .ripple {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.5s linear;
+        pointer-events: none;
+      }
+      
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
       }
     </style>
   </head>
 
   <body>
-    <h2>肥豬電腦遙控器</h2>
+    <h1>肥豬電腦遙控器</h1>
 
-    <div class="main ui container">
-      <div>
-        <button id="left" class="ui icon button">
-          <i class="icon backward"></i>
+    <div class="remote-container">
+      <div class="button-grid playback-grid">
+        <button id="left" class="remote-button">
+          <i class="fas fa-backward"></i>
         </button>
-        <button id="space" class="ui icon button">
-          <i class="icon pause" style="display: none;"></i>
-          <i class="icon play"></i>
+        <button id="space" class="remote-button btn-primary">
+          <i class="fas fa-play"></i>
         </button>
-        <button id="right" class="ui icon button">
-          <i class="icon forward"></i>
+        <button id="right" class="remote-button">
+          <i class="fas fa-forward"></i>
         </button>
       </div>
-      <div>
-        <button id="volume_down" class="ui icon button">
-          <i class="icon volume down"></i>
+      
+      <div class="button-grid volume-grid">
+        <button id="volume_down" class="remote-button small-button">
+          <i class="fas fa-volume-down"></i>
         </button>
-        <button id="volume_up" class="ui icon button">
-          <i class="icon volume up"></i>
+        <button id="volume_up" class="remote-button small-button">
+          <i class="fas fa-volume-up"></i>
         </button>
-        <button id="sleep" class="ui icon button">
-          <i class="icon power off"></i>
+      </div>
+      
+      <div class="button-grid">
+        <button id="sleep" class="remote-button small-button btn-danger">
+          <i class="fas fa-power-off"></i>
         </button>
       </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.5.5/rxjs.umd.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.26.1/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/7.5.5/rxjs.umd.min.js"></script>
 
     <script>
-      const $space = $('#space')
-      const $left = $('#left')
-      const $right = $('#right')
-      const $volDown = $('#volume_down')
-      const $volUp = $('#volume_up')
-      const $sleep = $('#sleep')
-      const { fromEvent, timer } = rxjs
-      const { merge, takeUntil, switchMap } = rxjs.operators
+      const $space = $('#space');
+      const $left = $('#left');
+      const $right = $('#right');
+      const $volDown = $('#volume_down');
+      const $volUp = $('#volume_up');
+      const $sleep = $('#sleep');
+      const { fromEvent, timer } = rxjs;
+      const { merge, takeUntil, switchMap } = rxjs.operators;
 
-      const interval = 350
+      const interval = 350;
+      
+      // Add ripple effect to buttons
+      document.querySelectorAll('.remote-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+          const rect = this.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          const ripple = document.createElement('span');
+          ripple.classList.add('ripple');
+          ripple.style.left = `${x}px`;
+          ripple.style.top = `${y}px`;
+          
+          this.appendChild(ripple);
+          
+          setTimeout(() => {
+            ripple.remove();
+          }, 600);
+        });
+      });
 
       $space.click(() => {
-        axios.post('/api/space').catch((err) => alert(err))
-        $('#space > i').toggle()
-      })
-      $volDown.click(() => axios.post('/api/volume_down').catch((err) => alert(err)))
-      $volUp.click(() => axios.post('/api/volume_up').catch((err) => alert(err)))
-      $sleep.click(() => axios.post('/api/sleep').catch((err) => alert(err)))
+        axios.post('/api/space').catch((err) => alert(err));
+      });
 
-      const leftDown = fromEvent($left, 'mousedown').pipe(merge(fromEvent($left, 'touchstart')))
-      const leftUp = fromEvent($left, 'mouseup').pipe(merge(fromEvent($left, 'touchend')))
-      const rightDown = fromEvent($right, 'mousedown').pipe(merge(fromEvent($right, 'touchstart')))
-      const rightUp = fromEvent($right, 'mouseup').pipe(merge(fromEvent($right, 'touchend')))
+      $volDown.click(() => axios.post('/api/volume_down').catch((err) => alert(err)));
+      $volUp.click(() => axios.post('/api/volume_up').catch((err) => alert(err)));
+      $sleep.click(() => axios.post('/api/sleep').catch((err) => alert(err)));
+
+      const leftDown = fromEvent($left, 'mousedown').pipe(merge(fromEvent($left, 'touchstart')));
+      const leftUp = fromEvent($left, 'mouseup').pipe(merge(fromEvent($left, 'touchend')));
+      const rightDown = fromEvent($right, 'mousedown').pipe(merge(fromEvent($right, 'touchstart')));
+      const rightUp = fromEvent($right, 'mouseup').pipe(merge(fromEvent($right, 'touchend')));
 
       rightDown
         .pipe(switchMap(() => timer(0, interval).pipe(takeUntil(rightUp))))
-        .subscribe(() => axios.post('/api/right').catch((err) => alert(err)))
+        .subscribe(() => axios.post('/api/right').catch((err) => alert(err)));
 
       leftDown
         .pipe(switchMap(() => timer(0, interval).pipe(takeUntil(leftUp))))
-        .subscribe(() => axios.post('/api/left').catch((err) => alert(err)))
+        .subscribe(() => axios.post('/api/left').catch((err) => alert(err)));
     </script>
   </body>
 </html>
