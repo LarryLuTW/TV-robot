@@ -27,7 +27,10 @@ struct GpuData {
 
 #[derive(Deserialize, Debug)]
 struct Display {
-    // We only need this struct to count displays, so we'll use serde(skip) for unused fields
+    #[serde(rename = "spdisplays_mirror")]
+    mirror: Option<String>,
+    #[serde(rename = "spdisplays_main")]
+    main_display: Option<String>,
 }
 
 fn handle_embedded_file(path: &str) -> HttpResponse {
@@ -78,7 +81,8 @@ fn set_volume(vol: i8) {
         .unwrap();
 }
 
-fn count_total_displays() -> usize {
+
+fn has_multiple_displays() -> bool {
     let output = match Command::new("system_profiler")
         .arg("SPDisplaysDataType")
         .arg("-json")
@@ -87,7 +91,7 @@ fn count_total_displays() -> usize {
         Ok(output) => output,
         Err(e) => {
             eprintln!("Failed to run system_profiler: {}", e);
-            return 0;
+            return false;
         }
     };
 
@@ -95,27 +99,40 @@ fn count_total_displays() -> usize {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Failed to parse system_profiler output: {}", e);
-            return 0;
+            return false;
         }
     };
 
     match serde_json::from_str::<DisplayInfo>(&json_str) {
         Ok(display_info) => {
-            let total_displays = display_info.gpu_data.iter()
-                .map(|gpu| gpu.displays.len())
-                .sum();
-            total_displays
+            let non_mirrored_displays = display_info.gpu_data.iter()
+                .flat_map(|gpu| &gpu.displays)
+                .filter(|display| {
+                    // A display is not mirrored if:
+                    // 1. mirror field is None, "Off", or empty
+                    // 2. OR it's the main display
+                    let is_not_mirrored = display.mirror.as_ref()
+                        .map(|m| m != "On")
+                        .unwrap_or(true);
+                    let is_main = display.main_display.as_ref()
+                        .map(|m| m == "Yes")
+                        .unwrap_or(false);
+                    
+                    is_not_mirrored || is_main
+                })
+                .count();
+            
+            non_mirrored_displays > 1
         }
         Err(e) => {
             eprintln!("Failed to parse display JSON: {}", e);
-            // Fallback: count lines containing display names
-            json_str.matches("\"_name\"").count()
+            // Fallback: simple heuristic - if we have more than one display name, assume multiple displays
+            json_str.matches("\"_name\"").count() > 1
         }
     }
 }
 
 fn sleep_system() {
-    println!("Putting system to sleep...");
     // Use a more direct approach that should definitely work
     let _ = Command::new("osascript")
         .arg("-e")
@@ -168,37 +185,35 @@ async fn sleep_display() -> impl Responder {
 }
 
 async fn monitor_displays() {
-    let mut previous_display_count = count_total_displays();
-    println!("Initial total displays detected: {}", previous_display_count);
+    let mut previous_has_multiple = has_multiple_displays();
+    println!("Initial state: {} multiple displays", if previous_has_multiple { "has" } else { "no" });
     
     loop {
         sleep(Duration::from_secs(1)).await; // Check every 1 second for quick response
         
-        let current_display_count = count_total_displays();
+        let current_has_multiple = has_multiple_displays();
         
-        // If display count decreased, trigger sleep
-        if current_display_count < previous_display_count {
-            println!("Display count decreased: {} -> {}. Triggering system sleep...", 
-                     previous_display_count, current_display_count);
+        // If we went from multiple displays to single display, trigger sleep
+        if previous_has_multiple && !current_has_multiple {
             sleep_system();
             
             // Wait a bit for sleep command to take effect, then immediately resume monitoring
             sleep(Duration::from_secs(3)).await;
             
-            // Reset the count and continue monitoring - the system will naturally pause
+            // Reset the state and continue monitoring - the system will naturally pause
             // monitoring while asleep and resume when it wakes up
-            previous_display_count = count_total_displays();
-            println!("System awake again. Resuming monitoring with {} displays", previous_display_count);
+            previous_has_multiple = has_multiple_displays();
             continue;
         }
         
-        // If the count changed, log it (but only if it's not a decrease to avoid spam)
-        if current_display_count != previous_display_count {
-            println!("Display count changed: {} -> {}", 
-                     previous_display_count, current_display_count);
+        // If the state changed, log it (but only if it's not the trigger case to avoid spam)
+        if current_has_multiple != previous_has_multiple {
+            println!("Display state changed: {} multiple displays -> {} multiple displays", 
+                     if previous_has_multiple { "has" } else { "no" },
+                     if current_has_multiple { "has" } else { "no" });
         }
         
-        previous_display_count = current_display_count;
+        previous_has_multiple = current_has_multiple;
     }
 }
 
