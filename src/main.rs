@@ -1,7 +1,10 @@
 use std::process::Command;
+use std::time::Duration;
 
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use enigo::*;
+use serde::Deserialize;
+use tokio::time::sleep;
 
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
@@ -9,6 +12,23 @@ use rust_embed::RustEmbed;
 #[derive(RustEmbed)]
 #[folder = "public/"]
 struct Asset;
+
+#[derive(Deserialize, Debug)]
+struct DisplayInfo {
+    #[serde(rename = "SPDisplaysDataType")]
+    gpu_data: Vec<GpuData>,
+}
+
+#[derive(Deserialize, Debug)]
+struct GpuData {
+    #[serde(rename = "spdisplays_ndrvs")]
+    displays: Vec<Display>,
+}
+
+#[derive(Deserialize, Debug)]
+struct Display {
+    // We only need this struct to count displays, so we'll use serde(skip) for unused fields
+}
 
 fn handle_embedded_file(path: &str) -> HttpResponse {
     match Asset::get(path) {
@@ -58,6 +78,59 @@ fn set_volume(vol: i8) {
         .unwrap();
 }
 
+fn count_total_displays() -> usize {
+    let output = match Command::new("system_profiler")
+        .arg("SPDisplaysDataType")
+        .arg("-json")
+        .output()
+    {
+        Ok(output) => output,
+        Err(e) => {
+            eprintln!("Failed to run system_profiler: {}", e);
+            return 0;
+        }
+    };
+
+    let json_str = match String::from_utf8(output.stdout) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to parse system_profiler output: {}", e);
+            return 0;
+        }
+    };
+
+    match serde_json::from_str::<DisplayInfo>(&json_str) {
+        Ok(display_info) => {
+            let total_displays = display_info.gpu_data.iter()
+                .map(|gpu| gpu.displays.len())
+                .sum();
+            total_displays
+        }
+        Err(e) => {
+            eprintln!("Failed to parse display JSON: {}", e);
+            // Fallback: count lines containing display names
+            json_str.matches("\"_name\"").count()
+        }
+    }
+}
+
+fn sleep_system() {
+    println!("Putting system to sleep...");
+    // Use a more direct approach that should definitely work
+    let _ = Command::new("osascript")
+        .arg("-e")
+        .arg("tell application \"System Events\" to sleep")
+        .spawn()
+        .map_err(|e| {
+            eprintln!("Failed to execute osascript sleep: {}, trying pmset...", e);
+            // Fallback to pmset
+            let _ = Command::new("pmset")
+                .arg("sleepnow")
+                .spawn()
+                .map_err(|e2| eprintln!("Failed to execute pmset sleepnow: {}", e2));
+        });
+}
+
 async fn index() -> HttpResponse {
     handle_embedded_file("index.html")
 }
@@ -90,11 +163,43 @@ async fn volume_up() -> impl Responder {
 }
 
 async fn sleep_display() -> impl Responder {
-    Command::new("pmset")
-        .arg("displaysleepnow")
-        .spawn()
-        .expect("failed to execute pmset command");
+    sleep_system();
     "Ok"
+}
+
+async fn monitor_displays() {
+    let mut previous_display_count = count_total_displays();
+    println!("Initial total displays detected: {}", previous_display_count);
+    
+    loop {
+        sleep(Duration::from_secs(1)).await; // Check every 1 second for quick response
+        
+        let current_display_count = count_total_displays();
+        
+        // If display count decreased, trigger sleep
+        if current_display_count < previous_display_count {
+            println!("Display count decreased: {} -> {}. Triggering system sleep...", 
+                     previous_display_count, current_display_count);
+            sleep_system();
+            
+            // Wait a bit for sleep command to take effect, then immediately resume monitoring
+            sleep(Duration::from_secs(3)).await;
+            
+            // Reset the count and continue monitoring - the system will naturally pause
+            // monitoring while asleep and resume when it wakes up
+            previous_display_count = count_total_displays();
+            println!("System awake again. Resuming monitoring with {} displays", previous_display_count);
+            continue;
+        }
+        
+        // If the count changed, log it (but only if it's not a decrease to avoid spam)
+        if current_display_count != previous_display_count {
+            println!("Display count changed: {} -> {}", 
+                     previous_display_count, current_display_count);
+        }
+        
+        previous_display_count = current_display_count;
+    }
 }
 
 #[actix_rt::main]
@@ -103,6 +208,9 @@ async fn main() -> std::io::Result<()> {
     let url = format!("http://{}:3000/", ip);
     qr2term::print_qr(&url).unwrap();
     println!("Server is running at: {}", url);
+
+    // Start display monitoring in background
+    tokio::spawn(monitor_displays());
 
     HttpServer::new(|| {
         App::new()
