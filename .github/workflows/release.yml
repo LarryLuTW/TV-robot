@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    branches: ["master"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Compute tag
+        id: tag
+        run: |
+          DATE=$(date -u +%Y.%m.%d)
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          echo "tag=v${DATE}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: tv-robot-macos-aarch64
+            binary: tv-robot
+          - os: windows-latest
+            artifact: tv-robot-windows-x86_64.exe
+            binary: tv-robot.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build (release)
+        run: cargo build --release --verbose
+
+      - name: Smoke test (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          ./target/release/tv-robot &
+          PID=$!
+          sleep 3
+          set -e
+          curl -fsS http://localhost:3000/ >/dev/null
+          PLATFORM=$(curl -fsS http://localhost:3000/api/platform)
+          echo "Platform endpoint: $PLATFORM"
+          echo "$PLATFORM" | grep -q '"os":"macos"'
+          kill $PID || true
+
+      - name: Smoke test (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath .\target\release\tv-robot.exe -PassThru
+          Start-Sleep -Seconds 3
+          try {
+            $resp = Invoke-WebRequest -Uri http://localhost:3000/ -UseBasicParsing
+            if ($resp.StatusCode -ne 200) { throw "Root returned $($resp.StatusCode)" }
+            $platform = (Invoke-WebRequest -Uri http://localhost:3000/api/platform -UseBasicParsing).Content
+            Write-Host "Platform endpoint: $platform"
+            if ($platform -notmatch '"os":"windows"') { throw "Unexpected platform: $platform" }
+          } finally {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Rename binary (Unix)
+        if: matrix.os != 'windows-latest'
+        run: cp target/release/${{ matrix.binary }} ${{ matrix.artifact }}
+
+      - name: Rename binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: Copy-Item target\release\${{ matrix.binary }} ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          generate_release_notes: true
+          files: artifacts/*

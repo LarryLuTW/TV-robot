@@ -2,18 +2,58 @@ name: CI
 
 on:
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v6
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y libxdo-dev
-    - name: Build
-      run: cargo build --verbose
+      - uses: actions/checkout@v6
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libxdo-dev
+
+      - name: Build (release)
+        run: cargo build --release --verbose
+
+      - name: Smoke test (Unix)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          ./target/release/tv-robot &
+          PID=$!
+          sleep 3
+          set -e
+          curl -fsS http://localhost:3000/ >/dev/null
+          PLATFORM=$(curl -fsS http://localhost:3000/api/platform)
+          echo "Platform endpoint: $PLATFORM"
+          case "${{ matrix.os }}" in
+            macos-latest)  echo "$PLATFORM" | grep -q '"os":"macos"' ;;
+            ubuntu-latest) echo "$PLATFORM" | grep -q '"os":"linux"' ;;
+          esac
+          kill $PID || true
+
+      - name: Smoke test (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath .\target\release\tv-robot.exe -PassThru
+          Start-Sleep -Seconds 3
+          try {
+            $resp = Invoke-WebRequest -Uri http://localhost:3000/ -UseBasicParsing
+            if ($resp.StatusCode -ne 200) { throw "Root returned $($resp.StatusCode)" }
+            $platform = (Invoke-WebRequest -Uri http://localhost:3000/api/platform -UseBasicParsing).Content
+            Write-Host "Platform endpoint: $platform"
+            if ($platform -notmatch '"os":"windows"') { throw "Unexpected platform: $platform" }
+          } finally {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
