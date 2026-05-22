@@ -92,6 +92,19 @@
         box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
         background-color: #f5f5f5;
       }
+
+      .remote-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        background-color: #bdc3c7;
+        color: #7f8c8d;
+      }
+
+      .remote-button:disabled:active {
+        transform: none;
+        box-shadow: var(--shadow);
+        background-color: #bdc3c7;
+      }
       
       .remote-button i {
         font-size: 32px;
@@ -208,7 +221,18 @@
 
       $volDown.click(() => axios.post('/api/volume_down').catch((err) => alert(err)));
       $volUp.click(() => axios.post('/api/volume_up').catch((err) => alert(err)));
-      $sleep.click(() => axios.post('/api/sleep').catch((err) => alert(err)));
+      $sleep.click(() => {
+        if ($sleep.prop('disabled')) return;
+        axios.post('/api/sleep').catch((err) => alert(err));
+      });
+
+      // Disable sleep button on non-macOS platforms (sleep is a no-op there).
+      axios.get('/api/platform').then((res) => {
+        if (res.data && res.data.os !== 'macos') {
+          $sleep.prop('disabled', true);
+          $sleep.attr('title', 'Sleep is only supported on macOS');
+        }
+      }).catch(() => {});
 
       const leftDown = fromEvent($left, 'mousedown').pipe(merge(fromEvent($left, 'touchstart')));
       const leftUp = fromEvent($left, 'mouseup').pipe(merge(fromEvent($left, 'touchend')));
