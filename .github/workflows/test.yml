@@ -46,12 +46,28 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $proc = Start-Process -FilePath .\target\release\tv-robot.exe -PassThru
-          Start-Sleep -Seconds 3
+          $proc = Start-Process -FilePath .\target\release\tv-robot.exe `
+            -RedirectStandardOutput tv-robot.stdout.log `
+            -RedirectStandardError  tv-robot.stderr.log `
+            -PassThru
+          # Wait up to 20s for the server to bind to port 3000.
+          $ready = $false
+          for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Seconds 1
+            if ($proc.HasExited) { break }
+            try {
+              $r = Invoke-WebRequest -Uri http://127.0.0.1:3000/ -UseBasicParsing -TimeoutSec 1
+              if ($r.StatusCode -eq 200) { $ready = $true; break }
+            } catch {}
+          }
+          Write-Host "----- stdout -----"
+          if (Test-Path tv-robot.stdout.log) { Get-Content tv-robot.stdout.log }
+          Write-Host "----- stderr -----"
+          if (Test-Path tv-robot.stderr.log) { Get-Content tv-robot.stderr.log }
+          Write-Host "------------------"
           try {
-            $resp = Invoke-WebRequest -Uri http://localhost:3000/ -UseBasicParsing
-            if ($resp.StatusCode -ne 200) { throw "Root returned $($resp.StatusCode)" }
-            $platform = (Invoke-WebRequest -Uri http://localhost:3000/api/platform -UseBasicParsing).Content
+            if (-not $ready) { throw "Server did not become ready within 20s (HasExited=$($proc.HasExited))" }
+            $platform = (Invoke-WebRequest -Uri http://127.0.0.1:3000/api/platform -UseBasicParsing).Content
             Write-Host "Platform endpoint: $platform"
             if ($platform -notmatch '"os":"windows"') { throw "Unexpected platform: $platform" }
           } finally {
