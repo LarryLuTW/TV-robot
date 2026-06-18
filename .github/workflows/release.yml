@@ -34,7 +34,7 @@ jobs:
             binary: tv-robot.exe
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build (release)
         run: cargo build --release --verbose
